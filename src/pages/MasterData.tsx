@@ -41,7 +41,7 @@ export default function MasterData() {
         actions={
           <Button size="sm" className="gap-2 gradient-primary border-0 text-primary-foreground hover:opacity-90 transition-opacity">
             <Plus className="h-3.5 w-3.5" />
-            Add Entry
+            Add Data
           </Button>
         }
       />
@@ -66,9 +66,9 @@ export default function MasterData() {
                   <TableRow key={m.id}>
                     <TableCell className="font-mono text-xs font-semibold">{m.id}</TableCell>
                     <TableCell className="font-medium">{m.name}</TableCell>
-                    <TableCell><StatusBadge status={m.status === "warning" ? "warning" : "running"} /></TableCell>
+                    <TableCell><StatusBadge status={m.status} /></TableCell>
                     <TableCell className="text-right tabular-nums">{m.powerKw}</TableCell>
-                    <TableCell className="text-right tabular-nums">{m.pf}</TableCell>
+                    <TableCell className="text-right tabular-nums">{m.avgPowerFactor}</TableCell>
                     <TableCell><RowActions /></TableCell>
                   </TableRow>
                 ))}

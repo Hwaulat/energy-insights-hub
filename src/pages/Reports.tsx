@@ -1,15 +1,5 @@
 import { useState } from "react";
-import {
-  CalendarDays,
-  Download,
-  FileSpreadsheet,
-  FileText,
-  Image as ImageIcon,
-  TrendingUp,
-  Coins,
-  Factory,
-  CheckCircle2,
-} from "lucide-react";
+import { CalendarDays, Download, Coins, Zap, Battery, Activity, Gauge, Droplets, Thermometer, Download as DownloadIcon, RefreshCw, FileText, FileSpreadsheet, ImageIcon } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -28,6 +18,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { SectionCard } from "@/components/SectionCard";
 import { StatCard } from "@/components/StatCard";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -38,12 +29,6 @@ import {
 } from "@/components/ui/select";
 import { cumulativeEnergy, energyTrend, machines } from "@/lib/mock-data";
 
-const productionData = machines.map((m) => ({
-  name: m.id,
-  produced: m.counter,
-  target: 1500,
-}));
-
 const costData = cumulativeEnergy.map((d) => ({
   day: d.day,
   cost: Math.round(d.kwh * 1.25), // Rp per kWh × 1000 (juta)
@@ -51,6 +36,8 @@ const costData = cumulativeEnergy.map((d) => ({
 
 export default function Reports() {
   const [period, setPeriod] = useState("today");
+  const [activeTab, setActiveTab] = useState("M-01");
+  const m3Progress = Math.min(100, Math.round((machines[2].outputPcs / machines[2].targetPcs) * 100));
 
   const handleExport = (fmt: string) =>
     toast.success(`Report exported as ${fmt}`, {
@@ -58,10 +45,10 @@ export default function Reports() {
     });
 
   return (
-    <div className="space-y-6 max-w-[1600px] mx-auto">
+    <div className="space-y-6 max-w-[1600px] mx-auto gap-6">
       <PageHeader
         title="Reports"
-        description="Comprehensive energy, production, quality, utilization & cost reports."
+        description="Comprehensive energy, quality, and cost reports."
         actions={
           <>
             <Select value={period} onValueChange={setPeriod}>
@@ -92,121 +79,202 @@ export default function Reports() {
         }
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <StatCard label="Total Energy" value="3,402" unit="kWh" icon={TrendingUp} accent="primary" delta={{ value: "+5.8%", positive: true }} />
-        <StatCard label="Production"   value="3,884" unit="pcs" icon={Factory}    accent="info"    delta={{ value: "+2.1%", positive: true }} />
-        <StatCard label="Quality Pass" value="96.4"  unit="%"   icon={CheckCircle2} accent="success" delta={{ value: "+0.8%", positive: true }} />
-        <StatCard label="Energy Cost"  value="4.25"  unit="Rp M" icon={Coins}      accent="warning" delta={{ value: "+3.6%", positive: false }} hint="vs prev period" />
-      </div>
 
-      <Tabs defaultValue="energy" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 gap-6">
         <TabsList className="bg-muted/60">
-          <TabsTrigger value="energy">Energy</TabsTrigger>
-          <TabsTrigger value="production">Production</TabsTrigger>
-          <TabsTrigger value="quality">Quality</TabsTrigger>
-          <TabsTrigger value="utilization">Utilization</TabsTrigger>
-          <TabsTrigger value="cost">Cost</TabsTrigger>
+          <TabsTrigger value="M-01">Casting & Holding Furnace</TabsTrigger>
+          <TabsTrigger value="M-02">Homogenizing Furnace</TabsTrigger>
+          <TabsTrigger value="M-03">Counter / Quantity Output</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="energy">
-          <SectionCard title="Energy Consumption Trend" description="Hourly kW per machine" bodyClassName="p-3">
-            <div className="h-80">
+        <TabsContent value="M-01" className="flex flex-col gap-4">
+          <SectionCard title="Casting & Holding Details" description="Machine-specific metrics for M-01">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Flow</div>
+                <div className="text-2xl font-bold tabular-nums">{machines[0].flowLpm.toFixed(2)}</div>
+                <div className="text-xs text-muted-foreground">L/min</div>
+              </div>
+              <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Holding</div>
+                <div className="text-2xl font-bold tabular-nums">{machines[0].holdingC}</div>
+                <div className="text-xs text-muted-foreground">°C</div>
+              </div>
+              <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Casting</div>
+                <div className="text-2xl font-bold tabular-nums">{machines[0].castingC}</div>
+                <div className="text-xs text-muted-foreground">°C</div>
+              </div>
+            </div>
+          </SectionCard>
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
+            <StatCard label="Total Power" value="58.6" unit="kW" icon={Zap} accent="primary" />
+            <StatCard label="Today's Energy" value="1,400" unit="kWh" icon={Battery} accent="info" />
+            <StatCard label="Cumulative" value="4.65" unit="GWh" icon={Activity} accent="success" />
+            <StatCard label="Avg Power Factor" value="0.92" icon={Gauge} accent="warning" />
+          </div>
+
+          <div className="w-full grid grid-cols-2 gap-4">
+            <SectionCard title="Power Consumption" description="24h power trend for Casting & Holding Furnace" bodyClassName="p-3" className="w-full">
+              <div className="h-72 flex items-center gap-2``">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={energyTrend} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                    <XAxis dataKey="time" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} tickLine={false} axisLine={false} />
+                    <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} tickLine={false} axisLine={false} unit=" kW" width={60} />
+                    <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+                    <Line type="monotone" dataKey="m1" name="M-01" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </SectionCard>
+
+            <SectionCard title="Cumulative Energy" description="Last 7 days, kWh" bodyClassName="p-3" className="w-full">
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={machines[0].weeklyEnergy} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                    <XAxis dataKey="day" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} tickLine={false} axisLine={false} />
+                    <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} tickLine={false} axisLine={false} width={50} />
+                    <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+                    <Bar dataKey="kwh" name="Energy" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </SectionCard>
+
+          </div>
+
+          
+        </TabsContent>
+
+        <TabsContent value="M-02" className="flex flex-col gap-4">
+
+          <SectionCard title="Homogenizing Details" description="Machine-specific metrics for M-02">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Flow</div>
+                <div className="text-2xl font-bold tabular-nums">{machines[1].flowLpm.toFixed(2)}</div>
+                <div className="text-xs text-muted-foreground">L/min</div>
+              </div>
+              <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Temperature</div>
+                <div className="text-2xl font-bold tabular-nums">{machines[1].tempC.toFixed(2)}</div>
+                <div className="text-xs text-muted-foreground">°C</div>
+              </div>
+            </div>
+          </SectionCard>
+
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
+            <StatCard label="Total Power" value="50.6" unit="kW" icon={Zap} accent="primary" />
+            <StatCard label="Today's Energy" value="1,100" unit="kWh" icon={Battery} accent="info" />
+            <StatCard label="Cumulative" value="4.80" unit="GWh" icon={Activity} accent="success" />
+            <StatCard label="Avg Power Factor" value="0.88" icon={Gauge} accent="warning" />
+          </div>
+
+          <div className="w-full grid grid-cols-2 gap-4">
+            <SectionCard title="Power Consumption" description="24h power trend for Homogenizing Furnace" bodyClassName="p-3">
+            <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={energyTrend} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                   <XAxis dataKey="time" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} tickLine={false} axisLine={false} />
                   <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} tickLine={false} axisLine={false} unit=" kW" width={60} />
                   <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Line type="monotone" dataKey="m1" name="Mesin 1" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={false} />
-                  <Line type="monotone" dataKey="m2" name="Mesin 2" stroke="hsl(var(--accent))"  strokeWidth={2.5} dot={false} />
-                  <Line type="monotone" dataKey="m3" name="Mesin 3" stroke="hsl(var(--info))"    strokeWidth={2.5} dot={false} />
+                  <Line type="monotone" dataKey="m2" name="M-02" stroke="hsl(var(--accent))" strokeWidth={2.5} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </SectionCard>
-        </TabsContent>
 
-        <TabsContent value="production">
-          <SectionCard title="Production vs Target" description="Units produced per machine" bodyClassName="p-3">
-            <div className="h-80">
+          <SectionCard title="Cumulative Energy" description="Last 7 days, kWh" bodyClassName="p-3">
+            <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={productionData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                  <XAxis dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} tickLine={false} axisLine={false} width={50} />
-                  <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="target"   name="Target"   fill="hsl(var(--muted))" radius={[6, 6, 0, 0]} />
-                  <Bar dataKey="produced" name="Produced" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </SectionCard>
-        </TabsContent>
-
-        <TabsContent value="quality">
-          <SectionCard title="Quality Pass Rate" description="% of batches within spec">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {machines.map((m, i) => {
-                const pct = [98.2, 91.4, 96.8][i];
-                return (
-                  <div key={m.id} className="p-5 rounded-lg bg-muted/40">
-                    <p className="text-xs uppercase font-semibold text-muted-foreground">{m.id}</p>
-                    <p className="text-3xl font-bold mt-1 tabular-nums">{pct}%</p>
-                    <div className="mt-3 h-2 bg-background rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full gradient-primary transition-all duration-700"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </SectionCard>
-        </TabsContent>
-
-        <TabsContent value="utilization">
-          <SectionCard title="Machine Utilization (OEE)" description="Availability × Performance × Quality">
-            <div className="space-y-4">
-              {machines.map((m, i) => {
-                const oee = [86.4, 72.1, 91.2][i];
-                return (
-                  <div key={m.id}>
-                    <div className="flex justify-between text-sm mb-1.5">
-                      <span className="font-medium">{m.name}</span>
-                      <span className="font-bold tabular-nums">{oee}%</span>
-                    </div>
-                    <div className="h-2.5 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-700 ${
-                          oee >= 85 ? "bg-success" : oee >= 75 ? "bg-warning" : "bg-destructive"
-                        }`}
-                        style={{ width: `${oee}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </SectionCard>
-        </TabsContent>
-
-        <TabsContent value="cost">
-          <SectionCard title="Energy Cost — Last 7 Days" description="Rp (thousands) per day" bodyClassName="p-3">
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={costData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                <BarChart data={machines[1].weeklyEnergy} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                   <XAxis dataKey="day" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} tickLine={false} axisLine={false} width={60} />
+                  <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} tickLine={false} axisLine={false} width={50} />
                   <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                  <Bar dataKey="cost" name="Cost (Rp k)" fill="hsl(var(--accent))" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="kwh" name="Energy" fill="hsl(var(--accent))" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </SectionCard>
+          </div>
+
+        </TabsContent>
+
+        <TabsContent value="M-03" className="flex flex-col gap-4">
+
+          <SectionCard title="Counter Details" description="Machine-specific metrics for M-03">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Output</div>
+                <div className="text-2xl font-bold tabular-nums">{machines[2].outputPcs}</div>
+                <div className="text-xs text-muted-foreground">pcs</div>
+              </div>
+              <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Reject</div>
+                <div className="text-2xl font-bold tabular-nums">{machines[2].rejectPcs}</div>
+                <div className="text-xs text-muted-foreground">pcs</div>
+              </div>
+              <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Rate</div>
+                <div className="text-2xl font-bold tabular-nums">{machines[2].ratePcsH}</div>
+                <div className="text-xs text-muted-foreground">pcs/h</div>
+              </div>
+              <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Target</div>
+                <div className="text-2xl font-bold tabular-nums">{machines[2].targetPcs}</div>
+                <div className="text-xs text-muted-foreground">pcs</div>
+              </div>
+            </div>
+            <div className="mt-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-foreground">Target Progress</span>
+                <span className="text-sm font-semibold tabular-nums">{m3Progress}%</span>
+              </div>
+              <Progress value={m3Progress} className="h-2 rounded-full" />
+            </div>
+          </SectionCard>
+
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
+            <StatCard label="Total Power" value="34.2" unit="kW" icon={Zap} accent="primary" />
+            <StatCard label="Today's Energy" value="902" unit="kWh" icon={Battery} accent="info" />
+            <StatCard label="Cumulative" value="3.39" unit="GWh" icon={Activity} accent="success" />
+            <StatCard label="Avg Power Factor" value="0.95" icon={Gauge} accent="warning" />
+          </div>
+
+          <div className="w-full grid grid-cols-2 gap-4">
+          <SectionCard title="Power Consumption" description="24h power trend for Counter / Output" bodyClassName="p-3">
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={energyTrend} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis dataKey="time" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} tickLine={false} axisLine={false} />
+                  <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} tickLine={false} axisLine={false} unit=" kW" width={60} />
+                  <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+                  <Line type="monotone" dataKey="m3" name="M-03" stroke="hsl(var(--info))" strokeWidth={2.5} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </SectionCard>
+
+          <SectionCard title="Cumulative Energy" description="Last 7 days, kWh" bodyClassName="p-3">
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={machines[2].weeklyEnergy} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis dataKey="day" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} tickLine={false} axisLine={false} />
+                  <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} tickLine={false} axisLine={false} width={50} />
+                  <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+                  <Bar dataKey="kwh" name="Energy" fill="hsl(var(--info))" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </SectionCard>
+          </div>
+          
         </TabsContent>
       </Tabs>
     </div>

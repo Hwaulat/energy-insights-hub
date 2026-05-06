@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Activity,
   Zap,
@@ -37,7 +38,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  alloyQuality,
+  alloyComposition,
   cumulativeEnergy,
   energyTrend,
   machines,
@@ -62,6 +63,13 @@ function ChartTooltip({ active, payload, label }: any) {
 
 export default function Dashboard() {
   const totalPower = machines.reduce((s, m) => s + m.powerKw, 0);
+  const [filterStart, setFilterStart] = useState("2025-05-01");
+  const [filterEnd, setFilterEnd] = useState("2025-05-07");
+  const [filteredComposition, setFilteredComposition] = useState(alloyComposition);
+
+  const handleApplyDateRange = () => {
+    setFilteredComposition(alloyComposition);
+  };
 
   return (
     <div className="space-y-6 max-w-[1600px] mx-auto">
@@ -119,6 +127,78 @@ export default function Dashboard() {
           delta={{ value: "−0.03", positive: false }}
           hint="Target ≥ 0.95"
         />
+      </div>
+
+            {/* Machines + PLC */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <div className="xl:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+          {machines.map((m) => {
+            return (
+              <div key={m.id} className="card-elevated p-5 animate-fade-in">
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                      {m.id}
+                    </p>
+                    <h4 className="text-sm font-semibold truncate">{m.name}</h4>
+                  </div>
+                  <StatusBadge status={m.status === "running" ? "warning" : "running"} />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mt-4">
+                  {m.id === "M-01" ? (
+                    <>
+                      <Metric icon={Droplets} label="Flow" value={`${m.flowLpm}`} unit="L/min" />
+                      <Metric icon={Thermometer} label="Holding" value={`${m.holdingC}`} unit="°C" />
+                      <Metric icon={Activity} label="Casting" value={`${m.castingC}`} unit="°C" />
+                    </>
+                  ) : m.id === "M-02" ? (
+                    <>
+                      <Metric icon={Droplets} label="Flow" value={`${m.flowLpm}`} unit="L/min" />
+                      <Metric icon={Thermometer} label="Temp" value={`${m.tempC}`} unit="°C" />
+                    </>
+                  ) : (
+                    <>
+                      <Metric icon={Download} label="Output" value={`${m.outputPcs}`} unit="pcs" />
+                      <Metric icon={RefreshCw} label="Rate" value={`${m.ratePcsH}`} unit="pcs/h" />
+                    </>
+                  )}
+                </div>
+
+                {m.id === "M-03" && (
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs text-muted-foreground">Target</span>
+                      <span className="text-xs font-bold tabular-nums">
+                        {m.outputPcs}/{m.targetPcs} pcs
+                      </span>
+                    </div>
+                    <Progress value={Math.min(100, (m.outputPcs / m.targetPcs) * 100)} className="h-1.5" />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <SectionCard title="PLC Status" description="Connection health per machine">
+          <ul className="space-y-3">
+            {plcStatus.map((p) => (
+              <li key={p.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/40 hover:bg-muted/70 transition-colors">
+                <div className="h-9 w-9 rounded-lg bg-background flex items-center justify-center">
+                  <Cpu className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate">{p.id} — {p.machine}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Latency {p.latencyMs}ms · {p.lastUpdate}
+                  </p>
+                </div>
+                <StatusBadge status={p.status} />
+              </li>
+            ))}
+          </ul>
+        </SectionCard>
       </div>
 
       {/* Charts row */}
@@ -191,112 +271,110 @@ export default function Dashboard() {
         </SectionCard>
       </div>
 
-      {/* Machines + PLC */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <div className="xl:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
-          {machines.map((m) => {
-            const tempPct = Math.min(100, (m.tempC / 1000) * 100);
-            const tempCritical = m.tempC > 950;
-            return (
-              <div key={m.id} className="card-elevated p-5 animate-fade-in">
-                <div className="flex items-start justify-between gap-2 mb-3">
-                  <div className="min-w-0">
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                      {m.id}
-                    </p>
-                    <h4 className="text-sm font-semibold truncate">{m.name}</h4>
-                  </div>
-                  <StatusBadge status={m.status === "warning" ? "warning" : "running"} />
-                </div>
 
-                <div className="grid grid-cols-2 gap-3 mt-4">
-                  <Metric icon={Zap}        label="Power"   value={`${m.powerKw}`}  unit="kW" />
-                  <Metric icon={Activity}   label="Current" value={`${m.currentA}`} unit="A" />
-                  <Metric icon={Gauge}      label="Voltage" value={`${m.voltageV}`} unit="V" />
-                  <Metric icon={Droplets}   label="Flow"    value={`${m.flowLpm}`}  unit="L/m" />
-                </div>
-
-                <div className="mt-4 pt-4 border-t border-border">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Thermometer className="h-3.5 w-3.5" />
-                      Temperature
-                    </span>
-                    <span className={`text-xs font-bold tabular-nums ${tempCritical ? "text-destructive" : "text-foreground"}`}>
-                      {m.tempC}°C
-                    </span>
-                  </div>
-                  <Progress
-                    value={tempPct}
-                    className={`h-1.5 ${tempCritical ? "[&>div]:bg-destructive" : "[&>div]:bg-success"}`}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <SectionCard title="PLC Status" description="Connection health per machine">
-          <ul className="space-y-3">
-            {plcStatus.map((p) => (
-              <li key={p.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/40 hover:bg-muted/70 transition-colors">
-                <div className="h-9 w-9 rounded-lg bg-background flex items-center justify-center">
-                  <Cpu className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">{p.id} — {p.machine}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Latency {p.latencyMs}ms · {p.lastUpdate}
-                  </p>
-                </div>
-                <StatusBadge status={p.status} />
-              </li>
-            ))}
-          </ul>
-        </SectionCard>
-      </div>
 
       {/* Alloy quality */}
       <SectionCard
-        title="Alloy Quality — Recent Batches"
-        description="Composition analysis (N=1) per batch"
-        actions={
-          <Button variant="ghost" size="sm" className="gap-1.5 text-xs">
-            <FlaskConical className="h-3.5 w-3.5" />
-            View all batches
-          </Button>
-        }
+        title="Alloy Quality — Composition Standards"
+        description="Element composition analysis with standards and measurements"
         bodyClassName="p-0"
+        actions={
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+            <div className="grid grid-cols-2 gap-2">
+              <label className="flex flex-col text-[11px] text-muted-foreground">
+                From
+                <input
+                  type="date"
+                  value={filterStart}
+                  onChange={(event) => setFilterStart(event.target.value)}
+                  className="mt-1 h-9 rounded-lg border border-border bg-background px-3 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+              </label>
+              <label className="flex flex-col text-[11px] text-muted-foreground">
+                To
+                <input
+                  type="date"
+                  value={filterEnd}
+                  onChange={(event) => setFilterEnd(event.target.value)}
+                  className="mt-1 h-9 rounded-lg border border-border bg-background px-3 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+              </label>
+            </div>
+            {/* <Button size="sm" variant="secondary" onClick={handleApplyDateRange} className="h-9">
+              Apply
+            </Button> */}
+          </div>
+        }
       >
         <div className="overflow-x-auto scrollbar-thin">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead>Batch</TableHead>
-                <TableHead>Machine</TableHead>
-                <TableHead className="text-right">Si (%)</TableHead>
-                <TableHead className="text-right">Fe (%)</TableHead>
-                <TableHead className="text-right">Cu (%)</TableHead>
-                <TableHead className="text-right">Mn (%)</TableHead>
-                <TableHead className="text-right">Mg (%)</TableHead>
+                <TableHead>Element</TableHead>
+                <TableHead className="text-right">STD. MIN (%)</TableHead>
+                <TableHead className="text-right">STD. MAX (%)</TableHead>
+                <TableHead className="text-right">AVE (%)</TableHead>
+                <TableHead className="text-right">N=1 (%)</TableHead>
+                <TableHead className="text-right">N=2 (%)</TableHead>
+                <TableHead className="text-right">N=3 (%)</TableHead>
+                <TableHead className="text-right">N=4 (%)</TableHead>
+                <TableHead className="text-right">N=5 (%)</TableHead>
                 <TableHead className="text-right">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {alloyQuality.map((b) => (
+              {filteredComposition.map((item) => (
                 <TableRow
-                  key={b.batch}
-                  className={b.status === "out-of-range" ? "bg-destructive/5 hover:bg-destructive/10" : ""}
+                  key={item.element}
+                  className={item.status === "out-of-range" ? "bg-destructive/5 hover:bg-destructive/10" : ""}
                 >
-                  <TableCell className="font-mono text-xs font-semibold">{b.batch}</TableCell>
-                  <TableCell className="text-sm">{b.machine}</TableCell>
-                  <TableCell className="text-right tabular-nums">{b.si.toFixed(2)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{b.fe.toFixed(2)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{b.cu.toFixed(2)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{b.mn.toFixed(2)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{b.mg.toFixed(2)}</TableCell>
+                  <TableCell className={`font-semibold ${item.status === "out-of-range" ? "text-destructive" : "text-foreground"}`}>
+                    {item.element}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums text-muted-foreground">
+                    {item.stdMin !== null ? item.stdMin.toFixed(2) : "—"}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums text-muted-foreground">
+                    {item.stdMax !== null ? item.stdMax.toFixed(2) : "—"}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums text-foreground">
+                    {item.ave.toFixed(2)}
+                  </TableCell>
+                  <TableCell className={`text-right tabular-nums font-semibold ${
+                    item.status === "out-of-range" ? "text-destructive" : "text-foreground"
+                  }`}>
+                    {item.n1.toFixed(2)}
+                  </TableCell>
+                  <TableCell className={`text-right tabular-nums font-semibold ${
+                    item.status === "out-of-range" ? "text-destructive" : "text-foreground"
+                  }`}>
+                    {item.n1.toFixed(2)}
+                  </TableCell>
+                  <TableCell className={`text-right tabular-nums font-semibold ${
+                    item.status === "out-of-range" ? "text-destructive" : "text-foreground"
+                  }`}>
+                    {item.n1.toFixed(2)}
+                  </TableCell>
+                  <TableCell className={`text-right tabular-nums font-semibold ${
+                    item.status === "out-of-range" ? "text-destructive" : "text-foreground"
+                  }`}>
+                    {item.n1.toFixed(2)}
+                  </TableCell>
+                  <TableCell className={`text-right tabular-nums font-semibold ${
+                    item.status === "out-of-range" ? "text-destructive" : "text-foreground"
+                  }`}>
+                    {item.n1.toFixed(2)}
+                  </TableCell>
                   <TableCell className="text-right">
-                    <StatusBadge status={b.status} />
+                    <span
+                      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${
+                        item.status === "in-range"
+                          ? "bg-green-50 text-green-500"
+                          : "bg-red-50 text-red-500"
+                      }`}
+                    >
+                      {item.status === "in-range" ? "OK" : "Out of Range"}
+                    </span>
                   </TableCell>
                 </TableRow>
               ))}
@@ -325,10 +403,12 @@ function Metric({
         <Icon className="h-3 w-3" />
         {label}
       </p>
-      <p className="mt-0.5 text-base font-bold tabular-nums">
-        {value}
-        <span className="text-xs font-medium text-muted-foreground ml-1">{unit}</span>
-      </p>
+      <div className="mt-1.5 px-3 py-2 rounded-lg bg-muted/50 border border-border/50">
+        <p className="text-sm font-bold tabular-nums text-foreground">
+          {value}
+          <span className="text-xs font-medium text-muted-foreground ml-1">{unit}</span>
+        </p>
+      </div>
     </div>
   );
 }
