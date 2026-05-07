@@ -130,57 +130,54 @@ export default function Dashboard() {
       </div>
 
             {/* Machines + PLC */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <div className="xl:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
-          {machines.map((m) => {
-            return (
-              <div key={m.id} className="card-elevated p-5 animate-fade-in">
-                <div className="flex items-start justify-between gap-2 mb-3">
-                  <div className="min-w-0">
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                      {m.id}
-                    </p>
-                    <h4 className="text-sm font-semibold truncate">{m.name}</h4>
-                  </div>
-                  <StatusBadge status={m.status === "running" ? "warning" : "running"} />
+      <div className="grid grid-cols-4 xl:grid-cols-4 gap-4">
+        {machines.map((m) => {
+          return (
+            <div key={m.id} className="card-elevated p-5 animate-fade-in">
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                    {m.id}
+                  </p>
+                  <h4 className="text-sm font-semibold truncate">{m.name}</h4>
                 </div>
+                <StatusBadge status={m.status === "running" ? "warning" : "running"} />
+              </div>
 
-                <div className="grid grid-cols-2 gap-3 mt-4">
-                  {m.id === "M-01" ? (
-                    <>
-                      <Metric icon={Droplets} label="Flow" value={`${m.flowLpm}`} unit="L/min" />
-                      <Metric icon={Thermometer} label="Holding" value={`${m.holdingC}`} unit="°C" />
-                      <Metric icon={Activity} label="Casting" value={`${m.castingC}`} unit="°C" />
-                    </>
-                  ) : m.id === "M-02" ? (
-                    <>
-                      <Metric icon={Droplets} label="Flow" value={`${m.flowLpm}`} unit="L/min" />
-                      <Metric icon={Thermometer} label="Temp" value={`${m.tempC}`} unit="°C" />
-                    </>
-                  ) : (
-                    <>
-                      <Metric icon={Download} label="Output" value={`${m.outputPcs}`} unit="pcs" />
-                      <Metric icon={RefreshCw} label="Rate" value={`${m.ratePcsH}`} unit="pcs/h" />
-                    </>
-                  )}
-                </div>
-
-                {m.id === "M-03" && (
-                  <div className="mt-4 pt-4 border-t border-border">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs text-muted-foreground">Target</span>
-                      <span className="text-xs font-bold tabular-nums">
-                        {m.outputPcs}/{m.targetPcs} pcs
-                      </span>
-                    </div>
-                    <Progress value={Math.min(100, (m.outputPcs / m.targetPcs) * 100)} className="h-1.5" />
-                  </div>
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                {m.id === "M-01" ? (
+                  <>
+                    <Metric icon={Droplets} label="Flow" value={`${m.flowLpm}`} unit="L/min" />
+                    <Metric icon={Thermometer} label="Holding" value={`${m.holdingC}`} unit="°C" />
+                    <Metric icon={Activity} label="Casting" value={`${m.castingC}`} unit="°C" />
+                  </>
+                ) : m.id === "M-02" ? (
+                  <>
+                    <Metric icon={Droplets} label="Flow" value={`${m.flowLpm}`} unit="L/min" />
+                    <Metric icon={Thermometer} label="Temp" value={`${m.tempC}`} unit="°C" />
+                  </>
+                ) : (
+                  <>
+                    <Metric icon={Download} label="Output" value={`${m.outputPcs}`} unit="pcs" />
+                    <Metric icon={RefreshCw} label="Rate" value={`${m.ratePcsH}`} unit="pcs/h" />
+                  </>
                 )}
               </div>
-            );
-          })}
-        </div>
 
+              {m.id === "M-03" && (
+                <div className="mt-4 pt-4 border-t border-border">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs text-muted-foreground">Target</span>
+                    <span className="text-xs font-bold tabular-nums">
+                      {m.outputPcs}/{m.targetPcs} pcs
+                    </span>
+                  </div>
+                  <Progress value={Math.min(100, (m.outputPcs / m.targetPcs) * 100)} className="h-1.5" />
+                </div>
+              )}
+            </div>
+          );
+        })}
         <SectionCard title="PLC Status" description="Connection health per machine">
           <ul className="space-y-3">
             {plcStatus.map((p) => (
@@ -199,6 +196,8 @@ export default function Dashboard() {
             ))}
           </ul>
         </SectionCard>
+        {/* <div className="xl:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+        </div> */}
       </div>
 
       {/* Charts row */}
